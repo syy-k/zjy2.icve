@@ -26,6 +26,9 @@ except:
         quit()
 
 sess = rqs.Session()
+headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,like Gecko) '
+           'Chrome/86.0.4240.75 Safari/537.36'}
+sess.headers.update(headers)
 
 auth = ''  # 设置为自己的auth
 # 谷歌(Chrome系浏览器): 浏览器上登录职教云后，
@@ -226,51 +229,54 @@ def doneCellTask(cell, openClassId, moduleId):
     """
     完成模块里的单个任务，根据任务类型调用相应方法
     """
-    cate = cell['categoryName']  # 任务类型 视频 文档 图片 ppt 子节点
-    print("\n试图完成 {type} 类型任务: 【{name}】 ...".format(
-        type=cate, name=cell['cellName']))
-    retmsg = "Unknow"  # 请求返回的状态
-    percent = 0  # 任务进度
-    if 'stuCellPercent' in cell:
-        percent = cell['stuCellPercent']
-    elif 'stuCellFourPercent' in cell:
-        percent = cell['stuCellFourPercent']
-    if percent == 100:
-        retmsg = "100%进度，任务跳过"
-    if (percent != 100):
-        if cate == "视频":
-            retmsg = doneCellVideo(cell, openClassId, moduleId)
-        elif cate == "图片":
-            retmsg = doneCellImage(cell, openClassId, moduleId)
-        elif cate == "ppt":
-            retmsg = doneCellPPT(cell, openClassId, moduleId)
-        elif cate == "文档":
-            retmsg = doneCellDoc(cell, openClassId, moduleId)
-        elif cate == "压缩包":
-            retmsg = doneCellZip(cell, openClassId, moduleId)
-        elif cate == "子节点":
-            print("试图完成 {name} 的多个子任务...".format(
-                type=cate, name=cell['cellName']))
-            for cell in cell['childNodeList']:
-                doneCellTask(cell, openClassId, moduleId)
-            retmsg = "操作成功！"
-        if cate != "子节点":
-            # 追加间隔
-            if isSubmitComment or isSubmitNote:
-                time.sleep(noteInterval)
-            if isSubmitComment and submitComment(cell['courseOpenId'], openClassId, cell['Id']):
-                print("课件评论已发布")
-            elif isSubmitComment:
-                print("课件笔记发布失败")
-            # 和评论同时发布 触发连续发布 会失败
-            if isSubmitNote and submitNote(cell['courseOpenId'], openClassId, cell['Id']):
-                print('课件笔记已发布')
-            elif isSubmitNote:
-                print("课件笔记发布失败")
-    print("任务类型：【{type}】 结果: 【{retmsg}】 任务名称: 【{name}】 等待冷却时间".format(
-        type=cate, name=cell['cellName'], retmsg=retmsg))
-    if percent != 100:
-        time.sleep(tastInterval)  # 等待5s 免得被ban了
+    try:
+        cate = cell['categoryName']  # 任务类型 视频 文档 图片 ppt 子节点
+        print("\n试图完成 {type} 类型任务: 【{name}】 ...".format(
+            type=cate, name=cell['cellName']))
+        retmsg = "Unknow"  # 请求返回的状态
+        percent = 0  # 任务进度
+        if 'stuCellPercent' in cell:
+            percent = cell['stuCellPercent']
+        elif 'stuCellFourPercent' in cell:
+            percent = cell['stuCellFourPercent']
+        if percent == 100:
+            retmsg = "100%进度，任务跳过"
+        if (percent != 100):
+            if cate == "视频":
+                retmsg = doneCellVideo(cell, openClassId, moduleId)
+            elif cate == "图片":
+                retmsg = doneCellImage(cell, openClassId, moduleId)
+            elif cate == "ppt":
+                retmsg = doneCellPPT(cell, openClassId, moduleId)
+            elif cate == "文档":
+                retmsg = doneCellDoc(cell, openClassId, moduleId)
+            elif cate == "压缩包":
+                retmsg = doneCellZip(cell, openClassId, moduleId)
+            elif cate == "子节点":
+                print("试图完成 {name} 的多个子任务...".format(
+                    type=cate, name=cell['cellName']))
+                for cell in cell['childNodeList']:
+                    doneCellTask(cell, openClassId, moduleId)
+                retmsg = "操作成功！"
+            if cate != "子节点":
+                # 追加间隔
+                if isSubmitComment or isSubmitNote:
+                    time.sleep(noteInterval)
+                if isSubmitComment and submitComment(cell['courseOpenId'], openClassId, cell['Id']):
+                    print("课件评论已发布")
+                elif isSubmitComment:
+                    print("课件笔记发布失败")
+                # 和评论同时发布 触发连续发布 会失败
+                if isSubmitNote and submitNote(cell['courseOpenId'], openClassId, cell['Id']):
+                    print('课件笔记已发布')
+                elif isSubmitNote:
+                    print("课件笔记发布失败")
+        print("任务类型：【{type}】 结果: 【{retmsg}】 任务名称: 【{name}】 等待冷却时间".format(
+            type=cate, name=cell['cellName'], retmsg=retmsg))
+        if percent != 100:
+            time.sleep(tastInterval)  # 等待5s 免得被ban了
+    except:
+        pass
     return None
 
 
@@ -314,7 +320,8 @@ def doneCellVideo(cell, openClassId, moduleId):
     inc = studyNewlyTime  # inc下次上报的进度 初始化为已有进度
     linc = inc  # 上次上报的进度
     while(inc < audioVideoLong):
-        inc += videoIncrementBase + random.random() * videoIncrementX  # 设置下次上报的进度
+        v = videoIncrementBase + random.random() * videoIncrementX
+        inc += v  # 设置下次上报的进度
         if inc >= audioVideoLong:
             inc = audioVideoLong
         print("  > 等待冷却时间")
@@ -326,7 +333,9 @@ def doneCellVideo(cell, openClassId, moduleId):
                                 guIdToken, "{:.6f}".format(inc),
                                 cellLogId=vd['cellLogId'])
         if '操作成功！' not in str(msg):
-            return "试图提交进度到" + str(inc) + "时发生错误:" + str(msg)
+            inc -= v
+            "【重试】试图提交进度到·" + str(inc) + "时发生错误:" + str(msg)
+            continue
         print(" 【{cellName}】 进度上报成功，当前完成度: {p:.2f}% 视频总时长: {sc} 当前进度时长: {ssc} 跳过{jump}".format(
             cellName=vd['cellName'],
             old=inc,
@@ -511,7 +520,7 @@ def courseStudy(courseList):
 
 
 def processStudy(currentProcessModuleId, processList, courseOpenId, openClassId, direct=False):
-    if direct: # 直接完成所有process 并返回False 否则死循环
+    if direct:  # 直接完成所有process 并返回False 否则死循环
         for process in processList:
             moduleId = process['id']
             topicList = getTopicByModuleId(courseOpenId, moduleId)
